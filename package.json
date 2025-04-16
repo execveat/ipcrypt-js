@@ -1,0 +1,52 @@
+{
+    "name": "ipcrypt",
+    "version": "1.0.0",
+    "description": "IP address encryption and obfuscation",
+    "type": "module",
+    "main": "index.js",
+    "exports": {
+        ".": "./index.js",
+        "./deterministic": "./src/ipcrypt-deterministic.js",
+        "./nd": "./src/ipcrypt-nd.js",
+        "./ndx": "./src/ipcrypt-ndx.js",
+        "./utils": "./src/utils.js"
+    },
+    "scripts": {
+        "test": "bun test/test.js",
+        "test:ip": "bun test/test-ip.js",
+        "test:all": "bun test/test.js && bun test/test-ip.js",
+        "test:node": "node test/test.js && node test/test-ip.js",
+        "lint": "eslint ."
+    },
+    "keywords": [
+        "encryption",
+        "ip",
+        "privacy",
+        "security",
+        "ipv4",
+        "ipv6",
+        "obfuscation"
+    ],
+    "author": "Frank Denis",
+    "license": "ISC",
+    "engines": {
+        "node": ">=16.0.0",
+        "bun": ">=1.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jedisct1/ipcrypt-js.git"
+    },
+    "bugs": {
+        "url": "https://github.com/jedisct1/ipcrypt-js/issues"
+    },
+    "files": [
+        "src",
+        "index.js",
+        "README.md",
+        "LICENSE"
+    ],
+    "devDependencies": {
+        "eslint": "^8.57.0"
+    }
+}

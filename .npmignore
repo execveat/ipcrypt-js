@@ -1,0 +1,6 @@
+test/
+coverage/
+.eslintrc.json
+.gitignore
+*.log
+*~
