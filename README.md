@@ -1,6 +1,6 @@
 # IPCrypt - JS
 
-A JavaScript implementation of the IP address encryption and obfuscation methods specified in the IETF draft [draft-denis-ipcrypt](https://datatracker.ietf.org/doc/draft-denis-ipcrypt/).
+A JavaScript implementation of the IP address encryption and obfuscation methods specified in the [ipcrypt document](https://datatracker.ietf.org/doc/draft-denis-ipcrypt/) ("Methods for IP Address Encryption and Obfuscation").
 
 ## Installation
 
