@@ -133,9 +133,6 @@ export function bytesToIp(bytes) {
         const before = parts.slice(0, zeroRun.start);
         const after = parts.slice(zeroRun.start + zeroRun.length);
 
-        if (!before.length && !after.length) return '::';
-        if (!before.length) return '::' + after.join(':');
-        if (!after.length) return before.join(':') + '::';
         return before.join(':') + '::' + after.join(':');
     }
 
