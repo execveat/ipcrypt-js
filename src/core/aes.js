@@ -125,19 +125,31 @@ function gmul3(a) {
 }
 
 function gmul9(a) {
-    return gmul2(gmul2(gmul2(a))) ^ a;
+    const a2 = gmul2(a);
+    const a4 = gmul2(a2);
+    const a8 = gmul2(a4);
+    return a8 ^ a;
 }
 
 function gmul11(a) {
-    return gmul2(gmul2(gmul2(a))) ^ gmul2(a) ^ a;
+    const a2 = gmul2(a);
+    const a4 = gmul2(a2);
+    const a8 = gmul2(a4);
+    return a8 ^ a2 ^ a;
 }
 
 function gmul13(a) {
-    return gmul2(gmul2(gmul2(a))) ^ gmul2(gmul2(a)) ^ a;
+    const a2 = gmul2(a);
+    const a4 = gmul2(a2);
+    const a8 = gmul2(a4);
+    return a8 ^ a4 ^ a;
 }
 
 function gmul14(a) {
-    return gmul2(gmul2(gmul2(a))) ^ gmul2(gmul2(a)) ^ gmul2(a);
+    const a2 = gmul2(a);
+    const a4 = gmul2(a2);
+    const a8 = gmul2(a4);
+    return a8 ^ a4 ^ a2;
 }
 
 /**
