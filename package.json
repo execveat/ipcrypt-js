@@ -1,6 +1,6 @@
 {
     "name": "ipcrypt",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "IP address encryption and obfuscation",
     "type": "module",
     "main": "index.js",
@@ -47,6 +47,6 @@
         "LICENSE"
     ],
     "devDependencies": {
-        "eslint": "^8.57.0"
+        "eslint": "^8.57.1"
     }
 }
