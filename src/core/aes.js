@@ -7,22 +7,6 @@ const EXPANDED_KEY_SIZE = 176; // Size of the expanded key (11 round keys * 16 b
 const GF_MODULUS = 0x1b;    // Irreducible polynomial: x^8 + x^4 + x^3 + x + 1
 const GF_HIGH_BIT = 0x80;   // Used for carry detection in GF multiplication
 
-// MixColumns transformation matrices
-const MIX_COLS = {
-    FORWARD: {  // Forward MixColumns matrix coefficients
-        M00: 0x02, M01: 0x03, M02: 0x01, M03: 0x01,
-        M10: 0x01, M11: 0x02, M12: 0x03, M13: 0x01,
-        M20: 0x01, M21: 0x01, M22: 0x02, M23: 0x03,
-        M30: 0x03, M31: 0x01, M32: 0x01, M33: 0x02
-    },
-    INVERSE: {  // Inverse MixColumns matrix coefficients
-        M00: 0x0e, M01: 0x0b, M02: 0x0d, M03: 0x09,
-        M10: 0x09, M11: 0x0e, M12: 0x0b, M13: 0x0d,
-        M20: 0x0d, M21: 0x09, M22: 0x0e, M23: 0x0b,
-        M30: 0x0b, M31: 0x0d, M32: 0x09, M33: 0x0e
-    }
-};
-
 // AES S-box
 export const SBOX = new Uint8Array([
     0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -124,23 +108,36 @@ export function shiftRows(state, inverse = false) {
 }
 
 /**
- * Performs Galois Field multiplication in GF(2^8).
- * Uses the irreducible polynomial x^8 + x^4 + x^3 + x + 1.
- * 
- * @param {number} a - First byte
- * @param {number} b - Second byte
- * @returns {number} Result of multiplication
+ * Specialized multiplication functions for GF(2^8) with AES field polynomial.
+ * These are optimized for the specific constant values used in MixColumns.
  */
-export function gmul(a, b) {
-    let p = 0;
-    for (let i = 0; i < 8; i++) {
-        if (b & 1) p ^= a;
-        const highBitSet = (a & GF_HIGH_BIT) !== 0;
-        a = (a << 1) & 0xff;
-        if (highBitSet) a ^= GF_MODULUS;
-        b >>= 1;
-    }
-    return p;
+
+
+function gmul2(a) {
+    const highBit = (a & GF_HIGH_BIT) !== 0;
+    a = (a << 1) & 0xff;
+    if (highBit) a ^= GF_MODULUS;
+    return a;
+}
+
+function gmul3(a) {
+    return gmul2(a) ^ a;
+}
+
+function gmul9(a) {
+    return gmul2(gmul2(gmul2(a))) ^ a;
+}
+
+function gmul11(a) {
+    return gmul2(gmul2(gmul2(a))) ^ gmul2(a) ^ a;
+}
+
+function gmul13(a) {
+    return gmul2(gmul2(gmul2(a))) ^ gmul2(gmul2(a)) ^ a;
+}
+
+function gmul14(a) {
+    return gmul2(gmul2(gmul2(a))) ^ gmul2(gmul2(a)) ^ gmul2(a);
 }
 
 /**
@@ -153,29 +150,35 @@ export function gmul(a, b) {
  */
 export function mixColumns(state, inverse = false) {
     const temp = new Uint8Array(STATE_SIZE);
-    const coef = inverse ? MIX_COLS.INVERSE : MIX_COLS.FORWARD;
 
-    for (let i = 0; i < 4; i++) {
-        const col = i * 4;
-        temp[col] = gmul(coef.M00, state[col]) ^
-            gmul(coef.M01, state[col + 1]) ^
-            gmul(coef.M02, state[col + 2]) ^
-            gmul(coef.M03, state[col + 3]);
+    if (inverse) {
+        // Inverse MixColumns with coefficients [0x0e, 0x0b, 0x0d, 0x09]
+        for (let i = 0; i < 4; i++) {
+            const col = i * 4;
+            const s0 = state[col];
+            const s1 = state[col + 1];
+            const s2 = state[col + 2];
+            const s3 = state[col + 3];
 
-        temp[col + 1] = gmul(coef.M10, state[col]) ^
-            gmul(coef.M11, state[col + 1]) ^
-            gmul(coef.M12, state[col + 2]) ^
-            gmul(coef.M13, state[col + 3]);
+            temp[col] = gmul14(s0) ^ gmul11(s1) ^ gmul13(s2) ^ gmul9(s3);
+            temp[col + 1] = gmul9(s0) ^ gmul14(s1) ^ gmul11(s2) ^ gmul13(s3);
+            temp[col + 2] = gmul13(s0) ^ gmul9(s1) ^ gmul14(s2) ^ gmul11(s3);
+            temp[col + 3] = gmul11(s0) ^ gmul13(s1) ^ gmul9(s2) ^ gmul14(s3);
+        }
+    } else {
+        // Forward MixColumns with coefficients [0x02, 0x03, 0x01, 0x01]
+        for (let i = 0; i < 4; i++) {
+            const col = i * 4;
+            const s0 = state[col];
+            const s1 = state[col + 1];
+            const s2 = state[col + 2];
+            const s3 = state[col + 3];
 
-        temp[col + 2] = gmul(coef.M20, state[col]) ^
-            gmul(coef.M21, state[col + 1]) ^
-            gmul(coef.M22, state[col + 2]) ^
-            gmul(coef.M23, state[col + 3]);
-
-        temp[col + 3] = gmul(coef.M30, state[col]) ^
-            gmul(coef.M31, state[col + 1]) ^
-            gmul(coef.M32, state[col + 2]) ^
-            gmul(coef.M33, state[col + 3]);
+            temp[col] = gmul2(s0) ^ gmul3(s1) ^ s2 ^ s3;
+            temp[col + 1] = s0 ^ gmul2(s1) ^ gmul3(s2) ^ s3;
+            temp[col + 2] = s0 ^ s1 ^ gmul2(s2) ^ gmul3(s3);
+            temp[col + 3] = gmul3(s0) ^ s1 ^ s2 ^ gmul2(s3);
+        }
     }
     state.set(temp);
 }
@@ -193,7 +196,7 @@ export function expandKey(key) {
 
     let rconIndex = 0;
     for (let i = STATE_SIZE; i < EXPANDED_KEY_SIZE; i += WORD_SIZE) {
-    // Copy previous word
+        // Copy previous word
         const temp = expandedKey.slice(i - WORD_SIZE, i);
 
         // Key schedule core for first word of each round
