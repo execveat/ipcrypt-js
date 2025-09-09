@@ -14,13 +14,15 @@ bun add ipcrypt
 
 ## Overview
 
-IPCrypt provides three different methods for IP address encryption:
+IPCrypt provides four different methods for IP address encryption:
 
 1. **Deterministic Encryption**: Uses AES-128 in a deterministic mode, where the same input always produces the same output for a given key. This is useful when you need to consistently map IP addresses to encrypted values.
 
 2. **Non-Deterministic Encryption**: Uses KIASU-BC, a tweakable block cipher, to provide non-deterministic encryption. This means the same input can produce different outputs, providing better privacy protection.
 
 3. **Extended Non-Deterministic Encryption**: An enhanced version of non-deterministic encryption that uses a larger key and tweak size for increased security.
+
+4. **Prefix-Preserving Encryption**: Uses a dual AES-128 construction to encrypt IP addresses while preserving their prefix structure. This is useful for maintaining network topology information while protecting individual addresses.
 
 ## Usage
 
@@ -82,6 +84,24 @@ const decrypted = nonDeterministicExtended.decrypt(encrypted, key);
 console.log(decrypted); // '192.168.1.1'
 ```
 
+### Prefix-Preserving Encryption
+
+```javascript
+import { prefixPreserving } from 'ipcrypt';
+
+// Create a 32-byte key
+const key = new Uint8Array(32);
+crypto.getRandomValues(key);
+
+// Encrypt an IP address
+const encrypted = prefixPreserving.encrypt('192.168.1.1', key);
+console.log(encrypted); // Encrypted IP address preserving the prefix
+
+// Decrypt the IP address
+const decrypted = prefixPreserving.decrypt(encrypted, key);
+console.log(decrypted); // '192.168.1.1'
+```
+
 ### Utility Functions
 
 ```javascript
@@ -139,6 +159,20 @@ console.log(ip); // '192.168.1.1'
 - `nonDeterministicExtended.decrypt(encrypted: Uint8Array, key: Uint8Array): string`
   - Decrypts an encrypted IP address
   - `encrypted`: Encrypted data
+  - `key`: 32-byte encryption key
+  - Returns: Original IP address
+
+### Prefix-Preserving Encryption
+
+- `prefixPreserving.encrypt(ip: string, key: Uint8Array): string`
+  - Encrypts an IP address while preserving prefix structure
+  - `ip`: IPv4 or IPv6 address to encrypt
+  - `key`: 32-byte encryption key
+  - Returns: Encrypted IP address as a string
+
+- `prefixPreserving.decrypt(encrypted: string, key: Uint8Array): string`
+  - Decrypts a prefix-preserved encrypted IP address
+  - `encrypted`: Encrypted IP address
   - `key`: 32-byte encryption key
   - Returns: Original IP address
 
