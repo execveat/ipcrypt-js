@@ -10,12 +10,12 @@ import { ipToBytes, bytesToIp } from './utils.js';
 function aesEncrypt(key, input) {
     const state = new Uint8Array(input);
     const expandedKey = expandKey(key);
-    
+
     // Initial round
     for (let i = 0; i < 16; i++) {
         state[i] ^= expandedKey[i];
     }
-    
+
     // Main rounds
     for (let round = 1; round < 10; round++) {
         subBytes(state);
@@ -25,14 +25,14 @@ function aesEncrypt(key, input) {
             state[i] ^= expandedKey[round * 16 + i];
         }
     }
-    
+
     // Final round
     subBytes(state);
     shiftRows(state);
     for (let i = 0; i < 16; i++) {
         state[i] ^= expandedKey[160 + i];
     }
-    
+
     return state;
 }
 
@@ -43,7 +43,7 @@ function aesEncrypt(key, input) {
  */
 function isIPv4(bytes16) {
     return bytes16.slice(0, 10).every(b => b === 0) &&
-           bytes16[10] === 0xff && bytes16[11] === 0xff;
+        bytes16[10] === 0xff && bytes16[11] === 0xff;
 }
 
 /**
@@ -69,7 +69,7 @@ function getBit(data, position) {
 function setBit(data, position, value) {
     const byteIndex = 15 - Math.floor(position / 8);
     const bitIndex = position % 8;
-    
+
     if (value) {
         data[byteIndex] |= (1 << bitIndex);
     } else {
@@ -86,7 +86,7 @@ function setBit(data, position, value) {
 function shiftLeftOneBit(data) {
     const result = new Uint8Array(16);
     let carry = 0;
-    
+
     // Process from least significant byte (byte 15) to most significant (byte 0)
     for (let i = 15; i >= 0; i--) {
         // Current byte shifted left by 1, with carry from previous byte
@@ -94,7 +94,7 @@ function shiftLeftOneBit(data) {
         // Extract the bit that will be carried to the next byte
         carry = (data[i] >> 7) & 1;
     }
-    
+
     return result;
 }
 
@@ -133,33 +133,33 @@ export function encrypt(ip, key) {
     if (!(key instanceof Uint8Array) || key.length !== 32) {
         throw new Error('Key must be 32 bytes');
     }
-    
+
     // Split the key into two AES-128 keys
     const K1 = key.slice(0, 16);
     const K2 = key.slice(16, 32);
-    
+
     // Check that K1 and K2 are different
     if (K1.every((byte, i) => byte === K2[i])) {
         throw new Error('The two halves of the key must be different');
     }
-    
+
     // Convert IP to 16-byte representation
     const bytes16 = ipToBytes(ip);
-    
+
     // Initialize encrypted result with zeros
     const encrypted = new Uint8Array(16);
-    
+
     // Determine starting point
     const ipv4 = isIPv4(bytes16);
     const prefixStart = ipv4 ? 96 : 0;
-    
+
     // If IPv4, copy the IPv4-mapped prefix
     if (ipv4) {
         encrypted.set(bytes16.slice(0, 12), 0);
     }
-    
+
     // No need to create cipher objects - we'll use aesEncrypt directly
-    
+
     // Initialize padded_prefix for the starting prefix length
     let paddedPrefix;
     if (ipv4) {
@@ -167,36 +167,35 @@ export function encrypt(ip, key) {
     } else {
         paddedPrefix = padPrefix0();
     }
-    
+
     // Process each bit position
     for (let prefixLenBits = prefixStart; prefixLenBits < 128; prefixLenBits++) {
         // Compute pseudorandom function with dual AES encryption
         const e1 = aesEncrypt(K1, paddedPrefix);
         const e2 = aesEncrypt(K2, paddedPrefix);
-        
+
         // XOR the two encryptions
         const e = new Uint8Array(16);
         for (let i = 0; i < 16; i++) {
             e[i] = e1[i] ^ e2[i];
         }
-        
+
         // We only need the least significant bit of byte 15
         const cipherBit = e[15] & 1;
-        
+
         // Extract the current bit from the original IP
         const currentBitPos = 127 - prefixLenBits;
-        
+
         // Set the bit in the encrypted result
         const originalBit = getBit(bytes16, currentBitPos);
         setBit(encrypted, currentBitPos, cipherBit ^ originalBit);
-        
+
         // Prepare padded_prefix for next iteration
         // Shift left by 1 bit and insert the next bit from bytes16
         paddedPrefix = shiftLeftOneBit(paddedPrefix);
-        const bitToInsert = getBit(bytes16, 127 - prefixLenBits);
-        setBit(paddedPrefix, 0, bitToInsert);
+        setBit(paddedPrefix, 0, originalBit);
     }
-    
+
     return bytesToIp(encrypted);
 }
 
@@ -211,33 +210,33 @@ export function decrypt(encryptedIp, key) {
     if (!(key instanceof Uint8Array) || key.length !== 32) {
         throw new Error('Key must be 32 bytes');
     }
-    
+
     // Split the key into two AES-128 keys
     const K1 = key.slice(0, 16);
     const K2 = key.slice(16, 32);
-    
+
     // Check that K1 and K2 are different
     if (K1.every((byte, i) => byte === K2[i])) {
         throw new Error('The two halves of the key must be different');
     }
-    
+
     // Convert encrypted IP to 16-byte representation
     const encryptedBytes = ipToBytes(encryptedIp);
-    
+
     // Initialize decrypted result with zeros
     const decrypted = new Uint8Array(16);
-    
+
     // Determine starting point
     const ipv4 = isIPv4(encryptedBytes);
     const prefixStart = ipv4 ? 96 : 0;
-    
+
     // If IPv4, copy the IPv4-mapped prefix
     if (ipv4) {
         decrypted.set(encryptedBytes.slice(0, 12), 0);
     }
-    
+
     // No need to create cipher objects - we'll use aesEncrypt directly
-    
+
     // Initialize padded_prefix for the starting prefix length
     let paddedPrefix;
     if (prefixStart === 0) {
@@ -245,35 +244,35 @@ export function decrypt(encryptedIp, key) {
     } else {
         paddedPrefix = padPrefix96();
     }
-    
+
     // Process each bit position
     for (let prefixLenBits = prefixStart; prefixLenBits < 128; prefixLenBits++) {
         // Compute pseudorandom function with dual AES encryption
         const e1 = aesEncrypt(K1, paddedPrefix);
         const e2 = aesEncrypt(K2, paddedPrefix);
-        
+
         // XOR the two encryptions
         const e = new Uint8Array(16);
         for (let i = 0; i < 16; i++) {
             e[i] = e1[i] ^ e2[i];
         }
-        
+
         // We only need the least significant bit of byte 15
         const cipherBit = e[15] & 1;
-        
+
         // Extract the current bit from the encrypted IP
         const currentBitPos = 127 - prefixLenBits;
-        
+
         // Set the bit in the decrypted result
         const encryptedBit = getBit(encryptedBytes, currentBitPos);
-        setBit(decrypted, currentBitPos, cipherBit ^ encryptedBit);
-        
+        const originalBit = cipherBit ^ encryptedBit;
+        setBit(decrypted, currentBitPos, originalBit);
+
         // Prepare padded_prefix for next iteration
         // Shift left by 1 bit and insert the next bit from decrypted
         paddedPrefix = shiftLeftOneBit(paddedPrefix);
-        const bitToInsert = getBit(decrypted, 127 - prefixLenBits);
-        setBit(paddedPrefix, 0, bitToInsert);
+        setBit(paddedPrefix, 0, originalBit);
     }
-    
+
     return bytesToIp(decrypted);
 }
