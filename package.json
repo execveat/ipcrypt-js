@@ -1,6 +1,6 @@
 {
     "name": "ipcrypt",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "IP address encryption and obfuscation",
     "type": "module",
     "main": "index.js",
