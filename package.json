@@ -70,7 +70,7 @@
     },
     "scripts": {
         "build": "tsup",
-        "prepublishOnly": "npm run build",
+        "prepare": "npm run build",
         "test": "bun test/test.js",
         "test:ip": "bun test/test-ip.js",
         "test:pfx": "bun test/test-pfx.js",
